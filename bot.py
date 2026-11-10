@@ -1,29 +1,47 @@
+import asyncio
 import os
-import telebot
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+import logging
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters import Command
+from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 
-# Получаем токен из переменной окружения Railway
-TOKEN = os.getenv("BOT_TOKEN")
-# Получаем ссылку на мини-приложение (вы ее настраивали ранее в Railway)
+logging.basicConfig(level=logging.INFO)
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBAPP_URL = os.getenv("WEBAPP_URL")
 
-bot = telebot.TeleBot(TOKEN)
+if not BOT_TOKEN:
+    raise ValueError("Не задан BOT_TOKEN в переменных окружения!")
 
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    # Создаем клавиатуру с кнопкой открытия мини-приложения
-    markup = InlineKeyboardMarkup()
-    web_app = WebAppInfo(url=WEBAPP_URL)
-    markup.add(InlineKeyboardButton("🛍 Открыть магазин и игру RSH Coin", web_app=web_app))
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
+
+@dp.message(Command("start"))
+async def cmd_start(message: types.Message):
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🛍 Открыть магазин RSH Coin",
+                    web_app=WebAppInfo(url=WEBAPP_URL or "https://example.com")
+                )
+            ]
+        ]
+    )
     
-    bot.send_message(
-        message.chat.id, 
-        "👋 Привет! Добро пожаловать в официальный магазин и крипто-кликер RSH Coin.\n\nНажмите кнопку ниже, чтобы начать игру и зайти в магазин!",
-        reply_markup=markup
+    await message.answer(
+        "👋 Привет! Добро пожаловать в официальный магазин **RSH Coin**.\n\n"
+        "Нажмите кнопку ниже, чтобы открыть каталог товаров и совершить покупку!",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
     )
 
+async def main():
+    print("Бот магазина запущен и ждет сообщения...")
+    await dp.start_polling(bot)
+
 if __name__ == "__main__":
-    print("Бот запущен...")
-    bot.infinity_polling()
+    asyncio.run(main())
+
 
 
